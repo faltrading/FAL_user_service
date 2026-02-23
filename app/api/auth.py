@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, status
 from app.models.user import UserCreate, UserLogin, TokenResponse, UserProfile
 from app.services import user_service
 from app.core.security import create_access_token
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_current_user 
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
