@@ -145,6 +145,9 @@ def delete_slot(slot_id: str) -> bool:
     if confirmed_bookings.data:
         return False
 
+    # Delete all non-confirmed bookings (e.g. cancelled, pending) to avoid FK constraint violation
+    client.table("bookings").delete().eq("slot_id", slot_id).neq("status", "confirmed").execute()
+
     client.table("calendar_slots").delete().eq("id", slot_id).execute()
     return True
 
