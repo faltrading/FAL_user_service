@@ -1,6 +1,8 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
+
+VALID_PAYMENT_STATUSES = ("pending", "active", "expired", "cancelled", "failed")
 
 
 class PaymentPlanCreate(BaseModel):
@@ -49,7 +51,7 @@ class UserPaymentCreate(BaseModel):
 
 
 class PaymentStatusUpdate(BaseModel):
-    status: str
+    status: Literal["pending", "active", "expired", "cancelled", "failed"]
     external_payment_id: str | None = None
     metadata: dict[str, Any] | None = None
 
