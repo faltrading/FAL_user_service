@@ -11,7 +11,7 @@ def get_settings() -> dict | None:
         .maybe_single()
         .execute()
     )
-    return result.data
+    return result.data if result else None
 
 
 def upsert_settings(data: dict) -> dict:
@@ -116,7 +116,7 @@ def get_slot_by_id(slot_id: str) -> dict | None:
         .maybe_single()
         .execute()
     )
-    return result.data
+    return result.data if result else None
 
 
 def update_slot(slot_id: str, data: dict) -> dict | None:
@@ -198,7 +198,7 @@ def get_available_slots(
             .maybe_single()
             .execute()
         )
-        if booking.data is None:
+        if not booking or booking.data is None:
             available.append(slot)
 
     return available
@@ -219,7 +219,7 @@ def create_booking(slot_id: str, user_id: str, notes: str | None = None) -> dict
         .maybe_single()
         .execute()
     )
-    if existing_booking.data:
+    if existing_booking and existing_booking.data:
         return None
 
     settings = get_settings()
@@ -308,7 +308,7 @@ def cancel_booking(booking_id: str, user_id: str | None = None) -> bool:
         query = query.eq("user_id", user_id)
 
     booking = query.maybe_single().execute()
-    if booking.data is None:
+    if not booking or booking.data is None:
         return False
 
     settings = get_settings()

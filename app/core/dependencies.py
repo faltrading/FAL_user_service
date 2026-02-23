@@ -35,13 +35,14 @@ async def get_current_user(
         .execute()
     )
 
-    if result.data is None:
+    data = result.data if result else None
+    if data is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found or inactive",
         )
 
-    return result.data
+    return data
 
 
 async def get_current_admin(

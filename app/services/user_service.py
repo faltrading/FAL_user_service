@@ -12,7 +12,7 @@ def get_user_by_username(username: str) -> dict | None:
         .maybe_single()
         .execute()
     )
-    return result.data
+    return result.data if result else None
 
 
 def get_user_by_email(email: str) -> dict | None:
@@ -24,7 +24,7 @@ def get_user_by_email(email: str) -> dict | None:
         .maybe_single()
         .execute()
     )
-    return result.data
+    return result.data if result else None
 
 
 def get_user_by_id(user_id: str) -> dict | None:
@@ -36,7 +36,7 @@ def get_user_by_id(user_id: str) -> dict | None:
         .maybe_single()
         .execute()
     )
-    return result.data
+    return result.data if result else None
 
 
 def create_user(

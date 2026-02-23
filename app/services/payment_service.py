@@ -31,7 +31,7 @@ def get_plan_by_id(plan_id: str) -> dict | None:
         .maybe_single()
         .execute()
     )
-    return result.data
+    return result.data if result else None
 
 
 def get_active_plans() -> list[dict]:
@@ -92,7 +92,7 @@ def get_user_subscription(user_id: str) -> dict | None:
         .maybe_single()
         .execute()
     )
-    return result.data
+    return result.data if result else None
 
 
 def get_user_payment_history(user_id: str) -> list[dict]:
