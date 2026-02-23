@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, status
 from app.models.user import UserCreate, UserLogin, TokenResponse, UserProfile
 from app.services import user_service
 from app.core.security import create_access_token
+from app.core.config import get_settings
 from app.core.dependencies import get_current_user 
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -39,7 +40,9 @@ async def login(payload: UserLogin):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password",
         )
-    token = create_access_token(data={"sub": user["id"], "username": user["username"]})
+    settings = get_settings()
+    role = "admin" if user["username"] == settings.admin_username else "user"
+    token = create_access_token(data={"sub": user["id"], "username": user["username"], "role": role})
     return TokenResponse(access_token=token)
 
 
