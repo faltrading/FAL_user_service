@@ -15,6 +15,11 @@ from app.core.dependencies import get_current_user, get_current_admin
 router = APIRouter(prefix="/users", tags=["Users"])
 
 
+@router.get("/me", response_model=UserProfile)
+async def get_me(current_user: dict = Depends(get_current_user)):
+    return user_service.strip_sensitive_fields(current_user)
+
+
 @router.get("/me/profile", response_model=UserProfile)
 async def get_my_profile(current_user: dict = Depends(get_current_user)):
     return user_service.strip_sensitive_fields(current_user)
