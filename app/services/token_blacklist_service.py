@@ -38,16 +38,20 @@ def is_token_blacklisted(token: str) -> bool:
         return True
 
     client = get_supabase_client()
-    result = (
-        client.table("token_blacklist")
-        .select("id")
-        .eq("token_hash", token_hash)
-        .maybe_single()
-        .execute()
-    )
-    if result.data is not None:
-        _blacklisted_cache.add(token_hash)
-        return True
+    try:
+        result = (
+            client.table("token_blacklist")
+            .select("id")
+            .eq("token_hash", token_hash)
+            .maybe_single()
+            .execute()
+        )
+        data = result.data if result else None
+        if data is not None:
+            _blacklisted_cache.add(token_hash)
+            return True
+    except Exception as e:
+        logger.warning("Token blacklist check failed: %s", e)
     return False
 
 
