@@ -1,9 +1,12 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, HTTPException, Depends, status
 from app.models.user import UserCreate, UserLogin, TokenResponse, UserProfile
-from app.services import user_service
-from app.core.security import create_access_token
+from app.services import user_service, token_blacklist_service
+from app.core.security import create_access_token, decode_access_token
 from app.core.config import get_settings
-from app.core.dependencies import get_current_user 
+from app.core.dependencies import get_current_user, security_scheme
+from fastapi.security import HTTPAuthorizationCredentials
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -49,3 +52,25 @@ async def login(payload: UserLogin):
 @router.get("/me", response_model=UserProfile)
 async def get_me(current_user: dict = Depends(get_current_user)):
     return user_service.strip_sensitive_fields(current_user)
+
+
+@router.post("/logout")
+async def logout(
+    credentials: HTTPAuthorizationCredentials = Depends(security_scheme),
+):
+    token = credentials.credentials
+    payload = decode_access_token(token)
+    if payload is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+        )
+
+    exp = payload.get("exp")
+    if exp:
+        expires_at = datetime.fromtimestamp(exp, tz=timezone.utc).isoformat()
+    else:
+        expires_at = datetime.now(timezone.utc).isoformat()
+
+    token_blacklist_service.blacklist_token(token, expires_at)
+    return {"message": "Logout effettuato con successo"}

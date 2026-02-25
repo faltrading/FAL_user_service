@@ -3,6 +3,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.core.security import decode_access_token
 from app.core.config import get_settings
 from app.db.connection import get_supabase_client
+from app.services import token_blacklist_service
 
 security_scheme = HTTPBearer()
 
@@ -11,6 +12,14 @@ async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security_scheme),
 ) -> dict:
     token = credentials.credentials
+
+    # Check token blacklist (logout / revocation)
+    if token_blacklist_service.is_token_blacklisted(token):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has been revoked",
+        )
+
     payload = decode_access_token(token)
     if payload is None:
         raise HTTPException(

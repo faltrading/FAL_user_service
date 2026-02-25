@@ -6,7 +6,10 @@ from app.models.user import (
     UserListItem,
     TradeZellaDataUpdate,
 )
-from app.services import user_service
+from app.models.gdpr import AccountDeleteRequest, AccountDeletionResponse, DataExportResponse
+from app.services import user_service, gdpr_service
+from app.core.security import verify_password
+from app.core.config import get_settings
 from app.core.dependencies import get_current_user, get_current_admin
 
 router = APIRouter(prefix="/users", tags=["Users"])
@@ -60,6 +63,44 @@ async def change_my_password(
             detail="Current password is incorrect",
         )
     return {"message": "Password updated successfully"}
+
+
+@router.delete("/me", response_model=AccountDeletionResponse)
+async def delete_my_account(
+    payload: AccountDeleteRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    """GDPR Art. 17 — Right to Erasure. Irreversible."""
+    # Prevent admin from deleting their own account
+    settings = get_settings()
+    if current_user["username"] == settings.admin_username:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="L'account admin non può essere eliminato",
+        )
+
+    # Verify password
+    if not verify_password(payload.password, current_user["password_hash"]):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Password non corretta",
+        )
+
+    report = gdpr_service.delete_account(current_user["id"])
+    return AccountDeletionResponse(
+        message="Account eliminato con successo. Tutti i dati personali sono stati rimossi o anonimizzati.",
+        user_id=report["user_id"],
+        deleted_at=report["deleted_at"],
+        actions=report["actions"],
+    )
+
+
+@router.get("/me/data-export", response_model=DataExportResponse)
+async def export_my_data(
+    current_user: dict = Depends(get_current_user),
+):
+    """GDPR Art. 15/20 — Right of Access / Data Portability."""
+    return gdpr_service.export_user_data(current_user["id"])
 
 
 @router.get("/", response_model=list[UserListItem])
