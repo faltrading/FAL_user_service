@@ -7,7 +7,7 @@ from app.services import token_blacklist_service
 
 security_scheme = HTTPBearer()
 
-
+# user
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security_scheme),
 ) -> dict:
