@@ -108,5 +108,18 @@ def get_all_users() -> list[dict]:
     return result.data
 
 
+def search_users_by_username(query: str, limit: int = 10) -> list[dict]:
+    client = get_supabase_client()
+    result = (
+        client.table("users")
+        .select("id, username, first_name, last_name, is_active")
+        .ilike("username", f"%{query}%")
+        .eq("is_active", True)
+        .limit(limit)
+        .execute()
+    )
+    return result.data or []
+
+
 def strip_sensitive_fields(user: dict) -> dict:
     return {k: v for k, v in user.items() if k != "password_hash"}

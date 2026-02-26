@@ -142,6 +142,17 @@ async def delete_my_account_alias(
     )
 
 
+@router.get("/search")
+async def search_users(
+    q: str = "",
+    current_user: dict = Depends(get_current_user),
+):
+    if len(q) < 2:
+        return []
+    results = user_service.search_users_by_username(q, limit=10)
+    return [{"id": u["id"], "username": u["username"]} for u in results]
+
+
 @router.get("/", response_model=list[UserListItem])
 async def list_all_users(admin: dict = Depends(get_current_admin)):
     users = user_service.get_all_users()
