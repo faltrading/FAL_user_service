@@ -108,6 +108,40 @@ async def export_my_data(
     return gdpr_service.export_user_data(current_user["id"])
 
 
+@router.get("/gdpr/export", response_model=DataExportResponse)
+async def export_my_data_alias(
+    current_user: dict = Depends(get_current_user),
+):
+    """Alias for /me/data-export (used by frontend)."""
+    return gdpr_service.export_user_data(current_user["id"])
+
+
+@router.post("/gdpr/delete", response_model=AccountDeletionResponse)
+async def delete_my_account_alias(
+    payload: AccountDeleteRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    """Alias for DELETE /me (used by frontend)."""
+    settings = get_settings()
+    if current_user["username"] == settings.admin_username:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="L'account admin non può essere eliminato",
+        )
+    if not verify_password(payload.password, current_user["password_hash"]):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Password non corretta",
+        )
+    report = gdpr_service.delete_account(current_user["id"])
+    return AccountDeletionResponse(
+        message="Account eliminato con successo. Tutti i dati personali sono stati rimossi o anonimizzati.",
+        user_id=report["user_id"],
+        deleted_at=report["deleted_at"],
+        actions=report["actions"],
+    )
+
+
 @router.get("/", response_model=list[UserListItem])
 async def list_all_users(admin: dict = Depends(get_current_admin)):
     users = user_service.get_all_users()

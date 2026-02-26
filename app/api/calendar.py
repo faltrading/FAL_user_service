@@ -11,6 +11,7 @@ from app.models.calendar import (
     BookingResponse,
 )
 from app.services import calendar_service
+from app.core.config import get_settings
 from app.core.dependencies import get_current_user, get_current_admin
 
 router = APIRouter(prefix="/calendar", tags=["Calendar"])
@@ -18,6 +19,16 @@ router = APIRouter(prefix="/calendar", tags=["Calendar"])
 
 @router.post("/settings", response_model=CalendarSettingsResponse)
 async def upsert_calendar_settings(
+    payload: CalendarSettingsCreate,
+    admin: dict = Depends(get_current_admin),
+):
+    data = payload.model_dump(exclude_none=False)
+    result = calendar_service.upsert_settings(data)
+    return result
+
+
+@router.put("/settings", response_model=CalendarSettingsResponse)
+async def update_calendar_settings(
     payload: CalendarSettingsCreate,
     admin: dict = Depends(get_current_admin),
 ):
@@ -159,6 +170,18 @@ async def list_my_bookings(current_user: dict = Depends(get_current_user)):
     return result
 
 
+@router.get("/bookings/mine", response_model=list[BookingResponse])
+async def list_my_bookings_alias(current_user: dict = Depends(get_current_user)):
+    """Alias for /my-bookings (used by frontend)."""
+    bookings = calendar_service.get_user_bookings(current_user["id"])
+    result = []
+    for b in bookings:
+        slot_data = b.pop("calendar_slots", None)
+        b["slot"] = slot_data
+        result.append(b)
+    return result
+
+
 @router.delete("/my-bookings/{booking_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def cancel_my_booking(
     booking_id: str,
@@ -185,11 +208,17 @@ async def list_all_bookings(
 
 
 @router.delete("/bookings/{booking_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def admin_cancel_booking(
+async def cancel_booking_by_id(
     booking_id: str,
-    admin: dict = Depends(get_current_admin),
+    current_user: dict = Depends(get_current_user),
 ):
-    success = calendar_service.cancel_booking(booking_id)
+    """Cancel a booking. Admins can cancel any, users only their own."""
+    settings = get_settings()
+    is_admin = current_user["username"] == settings.admin_username
+    if is_admin:
+        success = calendar_service.cancel_booking(booking_id)
+    else:
+        success = calendar_service.cancel_booking(booking_id, user_id=current_user["id"])
     if not success:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

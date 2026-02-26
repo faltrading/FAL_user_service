@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException, Depends, status
-from app.models.user import UserCreate, UserLogin, TokenResponse, UserProfile
+from app.models.user import UserCreate, UserLogin, TokenResponse, UserProfile, PasswordChange
 from app.services import user_service, token_blacklist_service
 from app.core.security import create_access_token, decode_access_token
 from app.core.config import get_settings
@@ -74,3 +74,19 @@ async def logout(
 
     token_blacklist_service.blacklist_token(token, expires_at)
     return {"message": "Logout effettuato con successo"}
+
+
+@router.post("/change-password")
+async def change_password(
+    payload: PasswordChange,
+    current_user: dict = Depends(get_current_user),
+):
+    success = user_service.change_password(
+        current_user["id"], payload.current_password, payload.new_password
+    )
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect",
+        )
+    return {"message": "Password updated successfully"}
